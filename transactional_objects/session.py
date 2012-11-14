@@ -9,6 +9,14 @@ class Session(object):
     def __init__(self, transaction_storage):
         self.transaction_storage = transaction_storage
 
+    def add(self, obj):
+        from .decorators import modifier
+        for name in dir(obj):
+            if name.startswith('set_'):
+                setter = modifier(getattr(obj, name))
+                setattr(obj, name, setter)
+        return obj
+
     def commit(self):
         self._init_new_transaction()
 

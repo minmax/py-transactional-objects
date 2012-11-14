@@ -15,24 +15,18 @@ class BaseTransactionalTestCase(TestCase):
         SessionRegistry.clean()
 
 
-@pickleable
-class AutoConfigured(object):
-    __slots__ = ['obj', 'list']
-
-    def __init__(self, obj, list):
-        self.obj = obj
-        self.list = list
-
-    @modifier
-    def set_obj(self, obj):
-        self.obj = obj
-
-    @modifier
-    def append(self, value):
-        self.list.append(value)
-
-
 class FullFunctionalTest(BaseTransactionalTestCase):
+    @pickleable(attributes=['value'])
+    class ValueStorage(object):
+        def __init__(self, initial_value):
+            self.value = initial_value
+
+        def set_value(self, value):
+            self.value = value
+
+        def get_value(self):
+            return self.value
+
     original_obj_arg = 1
     new_obj_arg = 2
 
@@ -40,20 +34,18 @@ class FullFunctionalTest(BaseTransactionalTestCase):
         obj = self._create_and_modify_object()
         self.session.rollback()
 
-        self.assertEqual([1, 2], obj.list)
-        self.assertEqual(self.original_obj_arg, obj.obj)
+        self.assertEqual(self.original_obj_arg, obj.get_value())
 
     def commit_test(self):
         obj = self._create_and_modify_object()
         self.session.commit()
 
-        self.assertEqual([1, 2, 3], obj.list)
-        self.assertEqual(self.new_obj_arg, obj.obj)
+        self.assertEqual(self.new_obj_arg, obj.get_value())
 
     def _create_and_modify_object(self):
-        obj = AutoConfigured(self.original_obj_arg, [1, 2])
-        obj.append(3)
-        obj.set_obj(self.new_obj_arg)
+        obj = self.ValueStorage(self.original_obj_arg)
+        obj = self.session.add(obj)
+        obj.set_value(self.new_obj_arg)
         return obj
 
 

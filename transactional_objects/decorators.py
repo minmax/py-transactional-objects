@@ -1,3 +1,4 @@
+import inspect
 from functools import wraps
 
 from .session_registry import SessionRegistry
@@ -58,6 +59,10 @@ def modifier(method):
     @wraps(method)
     def wrapper(obj, *args, **kwargs):
         session = SessionRegistry.get_session()
-        session.changing(obj)
+        if inspect.ismethod(method):
+            self = method.im_self
+        else:
+            self = obj
+        session.changing(self)
         return method(obj, *args, **kwargs)
     return wrapper
