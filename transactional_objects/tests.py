@@ -3,6 +3,56 @@ from unittest2 import TestCase
 from .session_registry import SessionRegistry
 from .transaction_storages import SimpleTransactionStorage
 from .decorators import pickleable, modifier
+from .interface_inspector import InterfaceInspector
+
+from .proxy import ProxyFactory
+
+
+class ProxyTest(TestCase):
+    def test_python_int(self):
+        one = 1
+        val = self._get_proxy_value(one)
+        self.assertTrue(1 == val)
+        self.assertEqual(str(val), str(1))
+        self.assertTrue(2 > val)
+
+    def _get_proxy_value(self, value):
+        class Container(object):
+            def __init__(self, value):
+                self.value = value
+
+            def get_value(self):
+                return self.value
+        proxy = self.proxy_factory.get_proxy(Container(value))
+        return proxy.get_value()
+
+    def setUp(self):
+        class FakeSession(object):
+            def changing(self, obj):
+                pass
+        session = FakeSession()
+        self.proxy_factory = ProxyFactory(session)
+
+
+class InterfaceInspectorTest(TestCase):
+    class Testable(object):
+        def set_x(self, x):
+            pass
+
+        def get_x(self):
+            pass
+
+        def _private(self):
+            pass
+
+        def public(self):
+            pass
+
+    def test_scan(self):
+        obj = self.Testable()
+        spec = InterfaceInspector().get_spec(obj)
+        self.assertEqual(spec.getters, ['get_x'])
+        self.assertEqual(spec.setters, ['set_x'])
 
 
 class BaseTransactionalTestCase(TestCase):
